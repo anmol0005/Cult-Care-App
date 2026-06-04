@@ -3,13 +3,13 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing, Typography } from '../theme';
 import { CustomInput } from '../components/CustomInput';
 import { CustomButton } from '../components/CustomButton';
@@ -28,7 +28,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const validate = () => {
     let isValid = true;
     setEmailError('');
-    setPasswordError('');
+    setPasswordError(''); 
 
     if (!email.trim()) {
       setEmailError('Email is required');
@@ -55,15 +55,18 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       // Simulate API call
       setTimeout(() => {
         setIsLoading(false);
-        Alert.alert('Success', 'Logged in successfully!');
-      }, 1500);
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'Dashboard' }],
+        });
+      }, 1000);
     }
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardView}
       >
         <ScrollView

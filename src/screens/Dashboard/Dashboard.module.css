@@ -1,0 +1,262 @@
+/* Dashboard.module.css */
+
+.safeArea {
+  flex: 1;
+  background-color: #0F172A; /* Slate 900 */
+}
+
+.scrollContent {
+  padding-left: 24px;
+  padding-right: 24px;
+  padding-top: 24px;
+  padding-bottom: 48px;
+}
+
+.header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+}
+
+.greetingText {
+  font-size: 14px;
+  color: #94A3B8; /* Slate 400 */
+}
+
+.userNameText {
+  font-size: 26px;
+  font-weight: 700;
+  color: #F8FAFC; /* Slate 50 */
+  margin-top: 4px;
+}
+
+.profileBadge {
+  width: 48px;
+  height: 48px;
+  border-radius: 9999px;
+  background-color: #818CF8; /* Indigo Light */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.profileBadgeText {
+  color: #FFFFFF;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.bannerCard {
+  display: flex;
+  flex-direction: row;
+  background-color: #1E293B; /* Slate 800 */
+  border: 1px solid #334155; /* Slate 700 */
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 32px;
+  align-items: center;
+}
+
+.bannerContent {
+  flex: 1;
+  padding-right: 8px;
+}
+
+.bannerTitle {
+  color: #10B981; /* Emerald 500 */
+  font-weight: 700;
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+
+.bannerSubtitle {
+  color: #94A3B8;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.bannerProgressContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(99, 102, 241, 0.08);
+  border-radius: 12px;
+  padding: 8px;
+  width: 75px;
+  height: 75px;
+}
+
+.bannerPercent {
+  color: #818CF8;
+  font-weight: 800;
+  font-size: 20px;
+}
+
+.bannerProgressLabel {
+  color: #64748B;
+  font-size: 9px;
+  margin-top: 2px;
+  text-align: center;
+}
+
+.sectionTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: #F8FAFC;
+  margin-bottom: 16px;
+}
+
+.statsGrid {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  margin-bottom: 32px;
+}
+
+.statCard {
+  width: calc(50% - 8px);
+  background-color: #1E293B;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.statIconContainer {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.statIcon {
+  font-size: 18px;
+}
+
+.statLabel {
+  color: #94A3B8;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.statValue {
+  color: #F8FAFC;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.statUnit {
+  font-size: 12px;
+  font-weight: normal;
+  color: #94A3B8;
+}
+
+.statStatus {
+  color: #64748B;
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+.appointmentCard {
+  background-color: #1E293B;
+  border: 1px solid #334155;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 32px;
+}
+
+.appointmentHeader {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.doctorAvatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 9999px;
+  background-color: #4F46E5;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.doctorAvatarText {
+  color: #FFFFFF;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.appointmentInfo {
+  margin-left: 16px;
+}
+
+.doctorName {
+  color: #F8FAFC;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.doctorSpecialty {
+  color: #94A3B8;
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.appointmentFooter {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid #334155;
+  padding-top: 16px;
+}
+
+.dateTimeBadge {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.dateTimeText {
+  color: #94A3B8;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.joinButton {
+  background-color: #10B981;
+  border-radius: 8px;
+  padding-left: 16px;
+  padding-right: 16px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  border: none;
+  cursor: pointer;
+}
+
+.joinButtonText {
+  color: #FFFFFF;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.actionContainer {
+  margin-top: 16px;
+}
+
+.actionButton {
+  margin-bottom: 8px;
+}
+
+.logoutButton {
+  border-color: #EF4444;
+}
