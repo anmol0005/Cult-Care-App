@@ -9,11 +9,25 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Colors, Spacing, Typography, BorderRadius } from '../theme';
-import { CustomInput } from '../components/CustomInput';
-import { CustomButton } from '../components/CustomButton';
-import { SidebarLayout } from '../components/SidebarLayout';
-import { useApp } from '../context/AppContext';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { Colors, Spacing, Typography, BorderRadius } from '../../theme';
+import { CustomInput } from '../../components/CustomInput';
+import { CustomButton } from '../../components/CustomButton';
+import { SidebarLayout } from '../../components/SidebarLayout';
+import { useApp } from '../../context/AppContext';
+
+// Define the validation schema using Zod
+const appointmentSchema = z.object({
+  patientId: z.string().min(1, 'Please select a patient'),
+  doctorName: z.string().min(2, 'Doctor name must be at least 2 characters'),
+  specialty: z.string().min(2, 'Specialty must be at least 2 characters'),
+  date: z.string().min(1, 'Appointment date is required'),
+  time: z.string().min(1, 'Appointment time is required'),
+});
+
+type AppointmentFormData = z.infer<typeof appointmentSchema>;
 
 interface MakeAppointmentScreenProps {
   navigation: any;
@@ -25,102 +39,65 @@ export const MakeAppointmentScreen: React.FC<MakeAppointmentScreenProps> = ({
   route,
 }) => {
   const { patients, addAppointment } = useApp();
-
   const routePatientId = route?.params?.patientId;
 
-  // Form states
-  const [selectedPatientId, setSelectedPatientId] = useState('');
-  const [doctorName, setDoctorName] = useState('');
-  const [specialty, setSpecialty] = useState('');
-  const [date, setDate] = useState('');
-  const [time, setTime] = useState('');
-
-  // Dropdown visibility
   const [showDropdown, setShowDropdown] = useState(false);
-
-  // Field validation errors
-  const [patientError, setPatientError] = useState('');
-  const [doctorError, setDoctorError] = useState('');
-  const [specialtyError, setSpecialtyError] = useState('');
-  const [dateError, setDateError] = useState('');
-  const [timeError, setTimeError] = useState('');
-
   const [isLoading, setIsLoading] = useState(false);
+
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<AppointmentFormData>({
+    resolver: zodResolver(appointmentSchema),
+    defaultValues: {
+      patientId: '',
+      doctorName: '',
+      specialty: '',
+      date: '',
+      time: '',
+    },
+  });
+
+  const watchedPatientId = watch('patientId');
 
   // Pre-select patient if redirected from EnterPatient
   useEffect(() => {
     if (routePatientId) {
-      setSelectedPatientId(routePatientId);
-    } else if (patients.length > 0 && !selectedPatientId) {
-      setSelectedPatientId(patients[0].id);
+      setValue('patientId', routePatientId);
+    } else if (patients.length > 0 && !watchedPatientId) {
+      setValue('patientId', patients[0].id);
     }
-  }, [routePatientId, patients]);
+  }, [routePatientId, patients, watchedPatientId, setValue]);
 
   const selectedPatientName =
-    patients.find((p) => p.id === selectedPatientId)?.name || 'Select Patient';
+    patients.find((p) => p.id === watchedPatientId)?.name || 'Select Patient';
 
-  const validate = () => {
-    let isValid = true;
-    setPatientError('');
-    setDoctorError('');
-    setSpecialtyError('');
-    setDateError('');
-    setTimeError('');
+  const onSubmit = (data: AppointmentFormData) => {
+    setIsLoading(true);
+    const pat = patients.find((p) => p.id === data.patientId);
+    const patientNameString = pat ? `${pat.title} ${pat.name}` : 'Unknown Patient';
 
-    if (!selectedPatientId) {
-      setPatientError('Please select a patient');
-      isValid = false;
-    }
+    setTimeout(() => {
+      setIsLoading(false);
+      addAppointment({
+        patientId: data.patientId,
+        patientName: patientNameString,
+        doctorName: data.doctorName,
+        specialty: data.specialty,
+        date: data.date,
+        time: data.time,
+      });
 
-    if (!doctorName.trim()) {
-      setDoctorError('Doctor name is required');
-      isValid = false;
-    }
-
-    if (!specialty.trim()) {
-      setSpecialtyError('Specialty is required');
-      isValid = false;
-    }
-
-    if (!date.trim()) {
-      setDateError('Appointment date is required');
-      isValid = false;
-    }
-
-    if (!time.trim()) {
-      setTimeError('Appointment time is required');
-      isValid = false;
-    }
-
-    return isValid;
-  };
-
-  const handleBook = () => {
-    if (validate()) {
-      setIsLoading(true);
-      
-      const pat = patients.find((p) => p.id === selectedPatientId);
-      const patientNameString = pat ? `${pat.title} ${pat.name}` : 'Unknown Patient';
-
-      setTimeout(() => {
-        setIsLoading(false);
-        addAppointment({
-          patientId: selectedPatientId,
-          patientName: patientNameString,
-          doctorName: doctorName.trim(),
-          specialty: specialty.trim(),
-          date: date.trim(),
-          time: time.trim(),
-        });
-
-        Alert.alert('Appointment Booked', 'The appointment has been successfully scheduled!', [
-          {
-            text: 'OK',
-            onPress: () => navigation.navigate('Dashboard'),
-          },
-        ]);
-      }, 1000);
-    }
+      Alert.alert('Appointment Booked', 'The appointment has been successfully scheduled!', [
+        {
+          text: 'OK',
+          onPress: () => navigation.navigate('Dashboard'),
+        },
+      ]);
+    }, 1000);
   };
 
   return (
@@ -158,7 +135,7 @@ export const MakeAppointmentScreen: React.FC<MakeAppointmentScreenProps> = ({
                   style={[
                     styles.dropdownTrigger,
                     showDropdown && styles.dropdownTriggerActive,
-                    patientError ? styles.dropdownTriggerError : null,
+                    errors.patientId ? styles.dropdownTriggerError : null,
                   ]}
                   onPress={() => setShowDropdown(!showDropdown)}
                   activeOpacity={0.7}
@@ -167,7 +144,7 @@ export const MakeAppointmentScreen: React.FC<MakeAppointmentScreenProps> = ({
                   <Text style={styles.dropdownArrow}>{showDropdown ? '▲' : '▼'}</Text>
                 </TouchableOpacity>
 
-                {patientError ? <Text style={styles.errorText}>{patientError}</Text> : null}
+                {errors.patientId && <Text style={styles.errorText}>{errors.patientId.message}</Text>}
 
                 {showDropdown && (
                   <View style={styles.dropdownListContainer}>
@@ -177,17 +154,17 @@ export const MakeAppointmentScreen: React.FC<MakeAppointmentScreenProps> = ({
                           key={p.id}
                           style={[
                             styles.dropdownItem,
-                            selectedPatientId === p.id && styles.dropdownItemActive,
+                            watchedPatientId === p.id && styles.dropdownItemActive,
                           ]}
                           onPress={() => {
-                            setSelectedPatientId(p.id);
+                            setValue('patientId', p.id);
                             setShowDropdown(false);
                           }}
                         >
                           <Text
                             style={[
                               styles.dropdownItemText,
-                              selectedPatientId === p.id && styles.dropdownItemTextActive,
+                              watchedPatientId === p.id && styles.dropdownItemTextActive,
                             ]}
                           >
                             {p.title} {p.name}
@@ -202,43 +179,72 @@ export const MakeAppointmentScreen: React.FC<MakeAppointmentScreenProps> = ({
             )}
           </View>
 
-          {/* Doctor Details */}
-          <CustomInput
-            label="Doctor Name"
-            placeholder="e.g. Dr. Sarah Jenkins"
-            autoCapitalize="words"
-            value={doctorName}
-            onChangeText={setDoctorName}
-            error={doctorError}
+          {/* Doctor Name */}
+          <Controller
+            control={control}
+            name="doctorName"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <CustomInput
+                label="Doctor Name"
+                placeholder="e.g. Dr. Sarah Jenkins"
+                autoCapitalize="words"
+                onBlur={onBlur}
+                onChangeText={onChange}
+                value={value}
+                error={errors.doctorName?.message}
+              />
+            )}
           />
 
-          <CustomInput
-            label="Doctor Specialty"
-            placeholder="e.g. Cardiologist"
-            autoCapitalize="words"
-            value={specialty}
-            onChangeText={setSpecialty}
-            error={specialtyError}
+          {/* Doctor Specialty */}
+          <Controller
+            control={control}
+            name="specialty"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <CustomInput
+                label="Doctor Specialty"
+                placeholder="e.g. Cardiologist"
+                autoCapitalize="words"
+                onBlur={onBlur}
+                onChangeText={onChange}
+                value={value}
+                error={errors.specialty?.message}
+              />
+            )}
           />
 
           {/* Date & Time Grid */}
           <View style={styles.rowGrid}>
             <View style={styles.halfWidth}>
-              <CustomInput
-                label="Date"
-                placeholder="e.g. Tomorrow"
-                value={date}
-                onChangeText={setDate}
-                error={dateError}
+              <Controller
+                control={control}
+                name="date"
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <CustomInput
+                    label="Date"
+                    placeholder="e.g. Monday"
+                    onBlur={onBlur}
+                    onChangeText={onChange}
+                    value={value}
+                    error={errors.date?.message}
+                  />
+                )}
               />
             </View>
             <View style={styles.halfWidth}>
-              <CustomInput
-                label="Time"
-                placeholder="e.g. 10:00 AM"
-                value={time}
-                onChangeText={setTime}
-                error={timeError}
+              <Controller
+                control={control}
+                name="time"
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <CustomInput
+                    label="Time"
+                    placeholder="e.g. 10:00 AM"
+                    onBlur={onBlur}
+                    onChangeText={onChange}
+                    value={value}
+                    error={errors.time?.message}
+                  />
+                )}
               />
             </View>
           </View>
@@ -246,7 +252,7 @@ export const MakeAppointmentScreen: React.FC<MakeAppointmentScreenProps> = ({
           {/* Book Button */}
           <CustomButton
             title="Book Appointment"
-            onPress={handleBook}
+            onPress={handleSubmit(onSubmit)}
             loading={isLoading}
             disabled={patients.length === 0}
             style={styles.bookButton}

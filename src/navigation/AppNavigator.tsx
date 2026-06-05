@@ -3,8 +3,8 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { LoginScreen } from '../screens/LoginScreen';
 import { RegisterScreen } from '../screens/RegisterScreen';
 import { Dashboard } from '../screens/Dashboard';
-import { EnterPatientScreen } from '../screens/EnterPatientScreen';
-import { MakeAppointmentScreen } from '../screens/MakeAppointmentScreen';
+import { EnterPatientScreen } from '../screens/EnterPatient';
+import { MakeAppointmentScreen } from '../screens/MakeAppointment';
 
 export type RootStackParamList = {
   Login: undefined;

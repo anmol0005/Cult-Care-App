@@ -5,10 +5,10 @@ import {
   View,
   ScrollView,
   TouchableOpacity,
-  StatusBar,
   Dimensions,
   Alert,
 } from 'react-native';
+import Svg, { Path, Circle, Text as SvgText } from 'react-native-svg';
 import { Colors, Spacing, Typography, BorderRadius, Shadows } from '../../theme';
 import { CustomButton } from '../../components/CustomButton';
 import { SidebarLayout } from '../../components/SidebarLayout';
@@ -37,6 +37,131 @@ export const Dashboard: React.FC<DashboardProps> = ({ navigation }) => {
       routes: [{ name: 'Login' }],
     });
   };
+
+  // Day of week mapping
+  const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  
+  const getDayIndex = (dateStr: string) => {
+    const normalized = dateStr.toLowerCase().trim();
+    if (normalized.includes('mon')) return 0;
+    if (normalized.includes('tue')) return 1;
+    if (normalized.includes('wed')) return 2;
+    if (normalized.includes('thu')) return 3;
+    if (normalized.includes('fri')) return 4;
+    if (normalized.includes('sat')) return 5;
+    if (normalized.includes('sun')) return 6;
+    if (normalized.includes('tomorrow')) {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const day = tomorrow.getDay();
+      return day === 0 ? 6 : day - 1;
+    }
+    const parsed = Date.parse(dateStr);
+    if (!isNaN(parsed)) {
+      const day = new Date(parsed).getDay();
+      return day === 0 ? 6 : day - 1;
+    }
+    return -1;
+  };
+
+  const appointmentsPerDay = [0, 0, 0, 0, 0, 0, 0];
+  appointments.forEach((appt) => {
+    const dayIndex = getDayIndex(appt.date);
+    if (dayIndex !== -1) {
+      appointmentsPerDay[dayIndex]++;
+    }
+  });
+
+  // Math for Line Chart
+  const maxCount = Math.max(...appointmentsPerDay, 2);
+  const chartHeight = 110;
+  const chartWidth = width - Spacing.lg * 2 - 32;
+
+  const lines: any[] = [];
+  for (let i = 0; i < 6; i++) {
+    const x1 = (chartWidth / 6) * i + 15;
+    const y1 = chartHeight - (appointmentsPerDay[i] / maxCount) * (chartHeight - 35) - 15;
+    const x2 = (chartWidth / 6) * (i + 1) + 15;
+    const y2 = chartHeight - (appointmentsPerDay[i + 1] / maxCount) * (chartHeight - 35) - 15;
+
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const length = Math.sqrt(dx * dx + dy * dy);
+    const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+
+    lines.push({
+      key: i,
+      x1,
+      y1,
+      x2,
+      y2,
+      length,
+      angle,
+    });
+  }
+
+  // Math for Pie Chart
+  const total = appointmentsPerDay.reduce((a, b) => a + b, 0);
+  const colors = [
+    '#6366F1', // Mon (Indigo)
+    '#10B981', // Tue (Emerald)
+    '#F59E0B', // Wed (Amber)
+    '#EC4899', // Thu (Pink)
+    '#8B5CF6', // Fri (Purple)
+    '#3B82F6', // Sat (Blue)
+    '#06B6D4', // Sun (Cyan)
+  ];
+
+  let accumulatedAngle = -90; // Start from the top
+  const pieSlices: any[] = [];
+
+  if (total > 0) {
+    appointmentsPerDay.forEach((count, index) => {
+      if (count > 0) {
+        const percentage = count / total;
+        const angleDelta = percentage * 360;
+
+        if (count === total) {
+          // 100% slice needs to be a circle, otherwise path calculation fails
+          pieSlices.push({
+            isFullCircle: true,
+            color: colors[index],
+            index,
+            count,
+            percentage: Math.round(percentage * 100),
+          });
+        } else {
+          const startAngle = accumulatedAngle;
+          const endAngle = accumulatedAngle + angleDelta;
+          
+          const rad = (angle: number) => (angle * Math.PI) / 180;
+          const cx = 70;
+          const cy = 70;
+          const r = 60;
+          
+          const x1 = cx + r * Math.cos(rad(startAngle));
+          const y1 = cy + r * Math.sin(rad(startAngle));
+          const x2 = cx + r * Math.cos(rad(endAngle));
+          const y2 = cy + r * Math.sin(rad(endAngle));
+          
+          const largeArcFlag = angleDelta > 180 ? 1 : 0;
+          
+          const pathData = `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`;
+          
+          pieSlices.push({
+            isFullCircle: false,
+            pathData,
+            color: colors[index],
+            index,
+            count,
+            percentage: Math.round(percentage * 100),
+          });
+          
+          accumulatedAngle = endAngle;
+        }
+      }
+    });
+  }
 
   return (
     <SidebarLayout navigation={navigation} title="Dashboard">
@@ -110,6 +235,154 @@ export const Dashboard: React.FC<DashboardProps> = ({ navigation }) => {
             <Text style={styles.statLabel}>Active Calories</Text>
             <Text style={styles.statValue}>420 <Text style={styles.statUnit}>kcal</Text></Text>
             <Text style={styles.statStatus}>Active</Text>
+          </View>
+        </View>
+
+        {/* Weekly Analytics Section */}
+        <Text style={styles.sectionTitle}>Weekly Analytics</Text>
+
+        {/* Line Chart Card */}
+        <View style={styles.chartCard}>
+          <Text style={styles.chartTitle}>Appointments Trend (Line Chart)</Text>
+          <View style={[styles.lineChartWrapper, { width: chartWidth }]}>
+            {/* Draw grid lines */}
+            <View style={styles.gridLinesContainer}>
+              <View style={styles.gridLine} />
+              <View style={styles.gridLine} />
+              <View style={styles.gridLine} />
+            </View>
+            
+            {/* Draw mathematical lines */}
+            {lines.map((line) => (
+              <View
+                key={line.key}
+                style={{
+                  position: 'absolute',
+                  left: (line.x1 + line.x2) / 2 - line.length / 2,
+                  top: (line.y1 + line.y2) / 2 - 1.5,
+                  width: line.length,
+                  height: 3,
+                  backgroundColor: Colors.primary,
+                  transform: [{ rotate: `${line.angle}deg` }],
+                }}
+              />
+            ))}
+            
+            {/* Draw dots */}
+            {appointmentsPerDay.map((val, i) => {
+              const x = (chartWidth / 6) * i + 15;
+              const y = chartHeight - (val / maxCount) * (chartHeight - 35) - 15;
+              return (
+                <React.Fragment key={i}>
+                  <View
+                    style={{
+                      position: 'absolute',
+                      left: x - 6,
+                      top: y - 6,
+                      width: 12,
+                      height: 12,
+                      borderRadius: 6,
+                      backgroundColor: Colors.accent,
+                      borderWidth: 2,
+                      borderColor: Colors.cardBackground,
+                      zIndex: 2,
+                    }}
+                  />
+                  {val > 0 && (
+                    <View
+                      style={{
+                        position: 'absolute',
+                        left: x - 12,
+                        top: y - 24,
+                        width: 24,
+                        alignItems: 'center',
+                        zIndex: 3,
+                      }}
+                    >
+                      <Text style={styles.chartPointValue}>{val}</Text>
+                    </View>
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </View>
+          
+          {/* X-axis Labels */}
+          <View style={[styles.xAxisLabels, { width: chartWidth }]}>
+            {weekDays.map((day) => (
+              <Text key={day} style={styles.xAxisLabel}>{day}</Text>
+            ))}
+          </View>
+        </View>
+
+        {/* Pie Chart Card */}
+        <View style={styles.chartCard}>
+          <Text style={styles.chartTitle}>Appointments Distribution (Pie Chart)</Text>
+          <View style={styles.pieChartWrapper}>
+            {total > 0 ? (
+              <Svg width={140} height={140} style={styles.pieSvg}>
+                {pieSlices.map((slice, i) => {
+                  if (slice.isFullCircle) {
+                    return (
+                      <Circle
+                        key={i}
+                        cx={70}
+                        cy={70}
+                        r={60}
+                        fill={slice.color}
+                      />
+                    );
+                  }
+                  return (
+                    <Path
+                      key={i}
+                      d={slice.pathData}
+                      fill={slice.color}
+                    />
+                  );
+                })}
+              </Svg>
+            ) : (
+              <Svg width={140} height={140} style={styles.pieSvg}>
+                <Circle
+                  cx={70}
+                  cy={70}
+                  r={60}
+                  fill="none"
+                  stroke={Colors.border}
+                  strokeWidth={8}
+                />
+                <SvgText
+                  x="70"
+                  y="75"
+                  fill={Colors.textSecondary}
+                  fontSize="12"
+                  textAnchor="middle"
+                  fontWeight="600"
+                >
+                  No Data
+                </SvgText>
+              </Svg>
+            )}
+            
+            {/* Legend Column */}
+            <View style={styles.pieLegend}>
+              {total === 0 ? (
+                <Text style={styles.noLegendText}>No appointments booked for this week.</Text>
+              ) : (
+                appointmentsPerDay.map((count, index) => {
+                  if (count === 0) return null;
+                  return (
+                    <View key={index} style={styles.legendRow}>
+                      <View style={[styles.legendColorBox, { backgroundColor: colors[index] }]} />
+                      <Text style={styles.legendText}>
+                        {weekDays[index]}: {count} ({Math.round((count / total) * 100)}%)
+                      </Text>
+                    </View>
+                  );
+                })
+              )}
+            </View>
           </View>
         </View>
 
@@ -343,6 +616,87 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
     fontSize: 11,
     marginTop: Spacing.xs,
+  },
+  chartCard: {
+    backgroundColor: Colors.cardBackground,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    marginBottom: Spacing.lg,
+    ...Shadows.sm,
+  },
+  chartTitle: {
+    ...Typography.body,
+    fontWeight: '700',
+    color: Colors.text,
+    marginBottom: Spacing.md,
+  },
+  lineChartWrapper: {
+    height: 110,
+    position: 'relative',
+  },
+  gridLinesContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+  },
+  gridLine: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    width: '100%',
+  },
+  chartPointValue: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: Colors.textSecondary,
+  },
+  xAxisLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 15,
+    marginTop: Spacing.sm,
+  },
+  xAxisLabel: {
+    color: Colors.textMuted,
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  pieChartWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  pieSvg: {
+    marginRight: Spacing.md,
+  },
+  pieLegend: {
+    flex: 1,
+  },
+  noLegendText: {
+    ...Typography.caption,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
+  legendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.xs,
+  },
+  legendColorBox: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: Spacing.sm,
+  },
+  legendText: {
+    color: Colors.textSecondary,
+    fontSize: 12,
+    fontWeight: '500',
   },
   appointmentCard: {
     backgroundColor: Colors.cardBackground,
