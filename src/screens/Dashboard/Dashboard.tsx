@@ -7,10 +7,12 @@ import {
   TouchableOpacity,
   StatusBar,
   Dimensions,
+  Alert,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing, Typography, BorderRadius, Shadows } from '../../theme';
 import { CustomButton } from '../../components/CustomButton';
+import { SidebarLayout } from '../../components/SidebarLayout';
+import { useApp } from '../../context/AppContext';
 
 const { width } = Dimensions.get('window');
 
@@ -19,7 +21,8 @@ interface DashboardProps {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ navigation }) => {
-  // Determine greeting based on current local time
+  const { appointments } = useApp();
+
   const hour = new Date().getHours();
   let greeting = 'Good Morning';
   if (hour >= 12 && hour < 17) {
@@ -30,21 +33,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ navigation }) => {
 
   const handleLogout = () => {
     navigation.reset({
-      index: 0, 
+      index: 0,
       routes: [{ name: 'Login' }],
     });
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.background} />
-      
-      <ScrollView 
+    <SidebarLayout navigation={navigation} title="Dashboard">
+      <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View style={styles.header}>
+        {/* Welcome Row */}
+        <View style={styles.welcomeRow}>
           <View>
             <Text style={styles.greetingText}>{greeting},</Text>
             <Text style={styles.userNameText}>Alex Rivera</Text>
@@ -112,62 +113,101 @@ export const Dashboard: React.FC<DashboardProps> = ({ navigation }) => {
           </View>
         </View>
 
-        {/* Upcoming Appointment */}
+        {/* Upcoming Appointments */}
         <Text style={styles.sectionTitle}>Upcoming Appointments</Text>
-        <View style={styles.appointmentCard}>
-          <View style={styles.appointmentHeader}>
-            <View style={styles.doctorAvatar}>
-              <Text style={styles.doctorAvatarText}>DJ</Text>
-            </View>
-            <View style={styles.appointmentInfo}>
-              <Text style={styles.doctorName}>Dr. Sarah Jenkins</Text>
-              <Text style={styles.doctorSpecialty}>Cardiologist</Text>
-            </View>
-          </View>
-          <View style={styles.appointmentFooter}>
-            <View style={styles.dateTimeBadge}>
-              <Text style={styles.dateTimeText}>📅 Tomorrow, 10:00 AM</Text>
-            </View>
-            <TouchableOpacity style={styles.joinButton}>
-              <Text style={styles.joinButtonText}>Join Call</Text>
+        
+        {appointments.length === 0 ? (
+          <View style={styles.emptyAppointmentsCard}>
+            <Text style={styles.emptyText}>No upcoming appointments scheduled.</Text>
+            <TouchableOpacity
+              style={styles.bookShortcutButton}
+              onPress={() => navigation.navigate('MakeAppointment')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.bookShortcutText}>Book an Appointment</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        ) : (
+          appointments.map((appt) => {
+            const docInitials = appt.doctorName
+              .replace('Dr. ', '')
+              .split(' ')
+              .map((n) => n[0])
+              .join('')
+              .toUpperCase()
+              .slice(0, 2);
+
+            return (
+              <View key={appt.id} style={styles.appointmentCard}>
+                <View style={styles.appointmentHeader}>
+                  <View style={styles.doctorAvatar}>
+                    <Text style={styles.doctorAvatarText}>{docInitials || 'DR'}</Text>
+                  </View>
+                  <View style={styles.appointmentInfo}>
+                    <Text style={styles.doctorName}>{appt.doctorName}</Text>
+                    <Text style={styles.doctorSpecialty}>{appt.specialty}</Text>
+                  </View>
+                </View>
+
+                {/* Patient Details Row */}
+                <View style={styles.patientBadge}>
+                  <Text style={styles.patientLabel}>Patient: </Text>
+                  <Text style={styles.patientValue}>{appt.patientName}</Text>
+                </View>
+
+                <View style={styles.appointmentFooter}>
+                  <View style={styles.dateTimeBadge}>
+                    <Text style={styles.dateTimeText}>📅 {appt.date}, {appt.time}</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.joinButton}
+                    onPress={() =>
+                      Alert.alert(
+                        'Telehealth Consultation',
+                        `Connecting to secure virtual consultation for ${appt.patientName}...`
+                      )
+                    }
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.joinButtonText}>Join Call</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            );
+          })
+        )}
 
         {/* Action Buttons */}
         <View style={styles.actionContainer}>
-          <CustomButton 
-            title="Log New Vitals" 
-            onPress={() => {}} 
+          <CustomButton
+            title="Register New Patient"
+            onPress={() => navigation.navigate('EnterPatient')}
             style={styles.actionButton}
           />
-          <CustomButton 
-            title="Log Out" 
+          <CustomButton
+            title="Log Out"
             variant="outline"
-            onPress={handleLogout} 
+            onPress={handleLogout}
             style={styles.logoutButton}
           />
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </SidebarLayout>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
   scrollContent: {
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
+    paddingTop: Spacing.md,
     paddingBottom: Spacing.xxl,
   },
-  header: {
+  welcomeRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: Spacing.xl,
+    marginTop: Spacing.xs,
   },
   greetingText: {
     ...Typography.caption,
@@ -310,13 +350,13 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.md,
     ...Shadows.sm,
   },
   appointmentHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   doctorAvatar: {
     width: 44,
@@ -343,6 +383,26 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontSize: 12,
     marginTop: 2,
+  },
+  patientBadge: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: BorderRadius.sm,
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    alignSelf: 'flex-start',
+    marginBottom: Spacing.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  patientLabel: {
+    color: Colors.textSecondary,
+    fontSize: 12,
+  },
+  patientValue: {
+    color: Colors.primaryLight,
+    fontWeight: '600',
+    fontSize: 12,
   },
   appointmentFooter: {
     flexDirection: 'row',
@@ -372,8 +432,38 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 12,
   },
+  emptyAppointmentsCard: {
+    backgroundColor: Colors.cardBackground,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.xl,
+    ...Shadows.sm,
+  },
+  emptyText: {
+    color: Colors.textSecondary,
+    fontSize: 14,
+    marginBottom: Spacing.md,
+    textAlign: 'center',
+  },
+  bookShortcutButton: {
+    backgroundColor: 'rgba(99, 102, 241, 0.15)',
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    borderRadius: BorderRadius.md,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+  },
+  bookShortcutText: {
+    color: Colors.primaryLight,
+    fontWeight: '700',
+    fontSize: 13,
+  },
   actionContainer: {
-    marginTop: Spacing.md,
+    marginTop: Spacing.lg,
   },
   actionButton: {
     marginBottom: Spacing.sm,
